@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Links para WhatsApp</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e9f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            overflow: auto;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            margin: 50px 0;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        label {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: white;
+            color: black;
+        }
+
+        .preview-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .preview-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .preview-link {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            font-family: monospace;
+            font-size: 12px;
+            color: #25d366;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .copy-button {
+            background-color: #6c757d;
+            color: white;
+            font-size: 14px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-button:hover {
+            background-color: #545b62;
+        }
+
+        .copy-button.copied {
+            background-color: #28a745;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #25d366;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .qr-loading {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin: 20px 0;
+        }
+
+        button {
+            background-color: #25d366;
+            color: white;
+            font-size: 18px;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 50px;
+        }
+
+        button:hover {
+            background-color: #128c7e;
+        }
+
+        .link-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .generated-link {
+            color: #25d366;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 16px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .generated-link:hover {
+            text-decoration: underline;
+        }
+
+        .notification {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+            display: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .qrcode-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #qrcode {
+            margin-top: 10px;
+            max-width: 250px;
+            margin: 0 auto;
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gerador de Links WhatsApp</h1>
+
+    <form id="linkForm">
+        <label for="whatsappNumber">Número do WhatsApp:</label>
+        <input type="text" id="whatsappNumber" placeholder="(11) 98888-4444" maxlength="15" required>
+
+        <label for="message">Mensagem Inicial (opcional):</label>
+        <textarea id="message" placeholder="Ex: Quero saber mais sobre o produto..." rows="4"></textarea>
+
+        <label for="campaign">Campanha (opcional):</label>
+        <input type="text" id="campaign" placeholder="Ex: Campanha de Lançamento">
+
+        <label for="utm_source">UTM Source (opcional):</label>
+        <input type="text" id="utm_source" placeholder="Ex: whatsapp">
+
+        <label for="utm_medium">UTM Medium (opcional):</label>
+        <input type="text" id="utm_medium" placeholder="Ex: link">
+
+        <label for="utm_campaign">UTM Campaign (opcional):</label>
+        <input type="text" id="utm_campaign" placeholder="Ex: ana_apartamento">
+
+        <div class="preview-container" id="previewContainer">
+            <div class="preview-title">📋 Preview do Link:</div>
+            <div class="preview-link" id="previewLink"></div>
+            <button type="button" class="copy-button" id="copyPreviewButton">📋 Copiar Link</button>
+        </div>
+
+        <button type="submit">
+            <span id="buttonText">Gerar Link</span>
+            <span id="buttonLoading" style="display: none;">
+                <div class="loading"></div>Gerando...
+            </span>
+        </button>
+    </form>
+
+    <div class="notification" id="notification">
+        Link Criado!
+    </div>
+
+    <div class="link-container" id="generatedLinkContainer">
+        <!-- Link gerado será exibido aqui -->
+    </div>
+
+    <div class="qrcode-container" id="qrcodeContainer">
+        <div class="qr-loading" id="qrLoading" style="display: none;">
+            <div class="loading"></div>
+            Gerando QR Code...
+        </div>
+        <div id="qrcode"></div> <!-- Div para exibir o QR Code -->
+    </div>
+</div>
+
+<script>
+    // Formatação automática do número de telefone
+    function formatPhoneNumber(value) {
+        // Remove tudo que não é número
+        const numbers = value.replace(/\D/g, '');
+        
+        // Aplica a formatação (XX) XXXXX-XXXX
+        if (numbers.length <= 2) {
+            return `(${numbers}`;
+        } else if (numbers.length <= 7) {
+            return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+        } else {
+            return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+        }
+    }
+
+    // Função para limpar formatação e obter apenas números
+    function cleanPhoneNumber(value) {
+        return value.replace(/\D/g, '');
+    }
+
+    // Função para gerar o link em tempo real
+    function generateLinkPreview() {
+        const whatsappNumber = cleanPhoneNumber(document.getElementById('whatsappNumber').value);
+        const message = document.getElementById('message').value;
+        const utmSource = document.getElementById('utm_source').value;
+        const utmMedium = document.getElementById('utm_medium').value;
+        const utmCampaign = document.getElementById('utm_campaign').value;
+
+        if (whatsappNumber.length < 10) {
+            document.getElementById('previewContainer').style.display = 'none';
+            return;
+        }
+
+        let link = `https://wa.me/55${whatsappNumber}`;
+        
+        if (message.trim()) {
+            link += `?text=${encodeURIComponent(message)}`;
+        }
+
+        // Adicionar parâmetros UTM
+        let utmParams = [];
+        if (utmSource) utmParams.push(`utm_source=${encodeURIComponent(utmSource)}`);
+        if (utmMedium) utmParams.push(`utm_medium=${encodeURIComponent(utmMedium)}`);
+        if (utmCampaign) utmParams.push(`utm_campaign=${encodeURIComponent(utmCampaign)}`);
+
+        if (utmParams.length > 0) {
+            const separator = message.trim() ? '&' : '?';
+            link += separator + utmParams.join('&');
+        }
+
+        document.getElementById('previewLink').textContent = link;
+        document.getElementById('previewContainer').style.display = 'block';
+        
+        return link;
+    }
+
+    // Event listeners para formatação e preview
+    document.getElementById('whatsappNumber').addEventListener('input', function(e) {
+        const formatted = formatPhoneNumber(e.target.value);
+        e.target.value = formatted;
+        generateLinkPreview();
+    });
+
+    // Event listeners para todos os campos que afetam o preview
+    ['message', 'utm_source', 'utm_medium', 'utm_campaign'].forEach(fieldId => {
+        document.getElementById(fieldId).addEventListener('input', generateLinkPreview);
+    });
+
+    // Função para copiar texto
+    async function copyToClipboard(text, button) {
+        try {
+            await navigator.clipboard.writeText(text);
+            const originalText = button.textContent;
+            button.textContent = '✅ Copiado!';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+        } catch (err) {
+            console.error('Erro ao copiar:', err);
+            // Fallback para navegadores mais antigos
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            button.textContent = '✅ Copiado!';
+            setTimeout(() => {
+                button.textContent = '📋 Copiar Link';
+            }, 2000);
+        }
+    }
+
+    // Botão de copiar do preview
+    document.getElementById('copyPreviewButton').addEventListener('click', function() {
+        const link = document.getElementById('previewLink').textContent;
+        copyToClipboard(link, this);
+    });
+
+    // Função para mostrar loading do QR Code
+    function showQRLoading() {
+        document.getElementById('qrLoading').style.display = 'block';
+        document.getElementById('qrcode').innerHTML = '';
+    }
+
+    function hideQRLoading() {
+        document.getElementById('qrLoading').style.display = 'none';
+    }
+
+    // Função para gerar QR Code com loading
+    function generateQRCode(text) {
+        showQRLoading();
+        
+        const qrCodeContainer = document.getElementById('qrcode');
+        
+        // Simula loading por 1 segundo para melhor UX
+        setTimeout(() => {
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
+            const img = document.createElement('img');
+            img.src = qrCodeUrl;
+            img.alt = 'QR Code';
+            img.style.maxWidth = '200px';
+            img.style.height = 'auto';
+            
+            img.onload = () => {
+                hideQRLoading();
+            };
+            
+            img.onerror = () => {
+                hideQRLoading();
+                qrCodeContainer.innerHTML = '<p style="color: #dc3545;">❌ Erro ao gerar QR Code</p>';
+            };
+            
+            qrCodeContainer.appendChild(img);
+        }, 1000);
+    }
+
+    // Função para mostrar loading do botão
+    function showButtonLoading() {
+        document.getElementById('buttonText').style.display = 'none';
+        document.getElementById('buttonLoading').style.display = 'flex';
+        document.querySelector('button[type="submit"]').disabled = true;
+    }
+
+    function hideButtonLoading() {
+        document.getElementById('buttonText').style.display = 'inline';
+        document.getElementById('buttonLoading').style.display = 'none';
+        document.querySelector('button[type="submit"]').disabled = false;
+    }
+
+    // Event listener do formulário
+    document.getElementById('linkForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        showButtonLoading();
+
+        const whatsappNumber = cleanPhoneNumber(document.getElementById('whatsappNumber').value);
+        const message = document.getElementById('message').value;
+        const campaign = document.getElementById('campaign').value;
+        const utmSource = document.getElementById('utm_source').value;
+        const utmMedium = document.getElementById('utm_medium').value;
+        const utmCampaign = document.getElementById('utm_campaign').value;
+
+        if (whatsappNumber.length < 10 || whatsappNumber.length > 11) {
+            alert('⚠️ Por favor, insira um número válido com DDD (ex: (11) 98888-4444)');
+            hideButtonLoading();
+            return;
+        }
+
+        let link = `https://wa.me/55${whatsappNumber}`;
+        
+        if (message.trim()) {
+            link += `?text=${encodeURIComponent(message)}`;
+        }
+
+        // Adicionar parâmetros UTM
+        let utmParams = [];
+        if (utmSource) utmParams.push(`utm_source=${encodeURIComponent(utmSource)}`);
+        if (utmMedium) utmParams.push(`utm_medium=${encodeURIComponent(utmMedium)}`);
+        if (utmCampaign) utmParams.push(`utm_campaign=${encodeURIComponent(utmCampaign)}`);
+
+        if (utmParams.length > 0) {
+            const separator = message.trim() ? '&' : '?';
+            link += separator + utmParams.join('&');
+        }
+
+        // Simula processamento por 1.5 segundos
+        setTimeout(() => {
+            // Exibe o link gerado
+            const linkContainer = document.getElementById('generatedLinkContainer');
+            linkContainer.innerHTML = `
+                <p>✅ <strong>Link gerado com sucesso!</strong></p>
+                <p>Clique no link abaixo para iniciar a conversa:</p>
+                <a href="${link}" target="_blank" class="generated-link">🚀 Iniciar conversa no WhatsApp</a>
+                <br>
+                <button type="button" class="copy-button" onclick="copyToClipboard('${link}', this)" style="margin-top: 10px;">📋 Copiar Link Completo</button>
+            `;
+
+            hideButtonLoading();
+
+            // Copiar automaticamente
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(link).then(() => {
+                    const notification = document.getElementById('notification');
+                    notification.style.display = 'block';
+                    
+                    setTimeout(function() {
+                        notification.style.display = 'none';
+                    }, 3000);
+                }).catch(err => {
+                    console.error('Erro ao copiar o link: ', err);
+                });
+            }
+
+            // Gerar QR Code
+            generateQRCode(link);
+
+            // Enviar para webhook
+            fetch('https://webhook.clickmaxagency.com/webhook/qrcode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    whatsappLink: link,
+                    campaignName: campaign,
+                    utmSource: utmSource,
+                    utmMedium: utmMedium,
+                    utmCampaign: utmCampaign,
+                    phoneNumber: whatsappNumber
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Dados enviados para o n8n:', data);
+            })
+            .catch((error) => {
+                console.error('❌ Erro ao enviar os dados para o n8n:', error);
+            });
+        }, 1500);
+    });
+</script>
+
+</body>
+</html>
